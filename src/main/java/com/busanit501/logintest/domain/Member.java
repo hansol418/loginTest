@@ -44,6 +44,9 @@ public class Member extends  BaseEntity {
     // 소셜 로그인한 프로필 이미지, 미디어 서버 주소
     private String profileImageServer;
 
+    // Refresh token 필드 추가
+    private String refreshToken;
+
     // 멤버를 조회시 roleSet 를 같이 조회를 하기.
     @ElementCollection(fetch = FetchType.LAZY)
     @Builder.Default
@@ -79,4 +82,12 @@ public class Member extends  BaseEntity {
         this.fileName = fileName;
     }
 
+    // 리프레시 토큰 관리 메서드
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
+    }
+
+    public String getRefreshToken() {
+        return this.refreshToken;
+    }
 }

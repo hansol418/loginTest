@@ -75,6 +75,22 @@ public class MemberController {
         }
 
     }
+
+    // 로그인 엔드포인트 추가
+    @PostMapping("/login")
+    public ResponseEntity<Map<String, String>> loginPost(@RequestBody MemberJoinDTO memberJoinDTO) {
+        log.info("loginPost====================");
+        Map<String, String> resultMap = new HashMap<>();
+        try {
+            String token = memberService.login(memberJoinDTO.getMid(), memberJoinDTO.getMpw());
+            resultMap.put("token", token);
+            return ResponseEntity.ok(resultMap);
+        } catch (Exception e) {
+            resultMap.put("error", "Invalid credentials");
+            return ResponseEntity.badRequest().body(resultMap);
+        }
+    }
+
     // 로그인 폼은 있지만, 로그인을 처리하는 로직처리가 없어요?
     // 누가 처리? 스프링의 시큐리티가 알아서 처리함.
     // 자동로그인, remember-me 이름으로 서버에 와요.
@@ -152,47 +168,38 @@ public class MemberController {
     }
 
 
-    //회원가입 폼
+    // 회원가입 폼
     @GetMapping("/join")
     public void joinGet() {
         log.info("joinGet====================");
     }
 
-    // 회원 가입 로직 처리
+    // 회원가입 엔드포인트 추가 (JWT 포함)
     @PostMapping("/join")
-    public String joinPost(MemberJoinDTO memberJoinDTO, @RequestParam(value = "profileImage", required = false) MultipartFile profileImage,
-                           RedirectAttributes redirectAttributes) {
+    public ResponseEntity<Map<String, String>> joinPost(MemberJoinDTO memberJoinDTO, @RequestParam(value = "profileImage", required = false) MultipartFile profileImage,
+                                                        RedirectAttributes redirectAttributes) {
         log.info("joinPost====================");
-        log.info("memberJoinDTO = " + memberJoinDTO);
-//        log.info("memberJoinDTO = 2 profileImage " + profileImage.getOriginalFilename());
-
-        // 프로필 이미지가 있을 경우, 이미지를 먼저 업로드 함.
         String resultProfileImage = "";
-        if(profileImage != null && !profileImage.isEmpty()) {
-            UploadResultDTO uploadResultDTO = memberService.uploadProfileImage(profileImage);
-            // resultProfileImage -> s_uuid_파일명
-            resultProfileImage = uploadResultDTO.getLink();
-            log.info("memberJoinDTO 이미지가 있는 경우 : " + resultProfileImage);
+        Map<String, String> resultMap = new HashMap<>();
 
-//        memberJoinDTO.addProfileImage(resultProfileImage);
+        if (profileImage != null && !profileImage.isEmpty()) {
+            UploadResultDTO uploadResultDTO = memberService.uploadProfileImage(profileImage);
+            resultProfileImage = uploadResultDTO.getLink();
             String[] arr = resultProfileImage.split("_");
             memberJoinDTO.setUuid(arr[1]);
             memberJoinDTO.setFileName(arr[2]);
         }
 
-        log.info("memberJoinDTO = 3 프로필 이미지 있는 경우  " + memberJoinDTO);
-        // 회원 가입 로직 처리 없음.
         try {
             memberService.join(memberJoinDTO);
+            String token = jwtUtil.generateToken(memberJoinDTO.getMid());
+            resultMap.put("token", token);
+            return ResponseEntity.ok(resultMap);
         } catch (MemberService.MidExistException e) {
-            redirectAttributes.addFlashAttribute("error", "아이디 중복입니다");
-            return "redirect:/member/join";
+            resultMap.put("error", "아이디 중복입니다");
+            return ResponseEntity.badRequest().body(resultMap);
         }
-        // 회원 가입 성공시
-        redirectAttributes.addFlashAttribute("result","회원가입 성공");
-        return "redirect:/member/login";
     }
-
 }
 
 
